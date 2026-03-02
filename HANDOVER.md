@@ -14,6 +14,8 @@ The repository currently includes:
 - Widget startup with persisted settings load/save.
 - Basic usage totals query contract and repository implementation.
 - Transparent always-on-top widget shell with live DL/UL text updates.
+- Tray icon with Settings/Exit actions.
+- Settings window (adapter, VPN filter, polling interval, opacity, start-with-Windows).
 
 ## 2) Build and Run Locally (Windows 11 / Server)
 
@@ -54,36 +56,27 @@ Schema file source:
 
 ## 5) Known Gaps / Risks
 
-1. Adapter selection UI is not yet exposed (currently uses persisted/default settings).
-2. Usage totals are computed via min/max counters in a range; adapter reset/restart edge cases need hardening.
-3. No tray integration yet.
-4. No start-with-Windows toggle wiring yet.
-5. No explicit offline indicator UX yet.
-6. No automated tests currently.
+1. Usage totals are computed via min/max counters in a range; adapter reset/restart edge cases need hardening.
+2. Start-with-Windows uses HKCU Run key; enterprise policy environments may require alternate startup strategy.
+3. No explicit offline indicator UX yet.
+4. No automated tests currently.
 
 ## 6) Immediate Next Implementation Steps (Recommended order)
 
-### Step A — Settings UI + validation
-- Add a small settings window (or panel) for:
-  - Adapter selection
-  - Poll interval
-  - Include VPN/tunnel adapters toggle
-- Persist via `SaveWidgetSettingsAsync`.
-
-### Step B — Timeframe usage API and display
+### Step A — Timeframe usage API and display
 - Add query methods for presets:
   - Hour / Day / Week / Month / Year / Custom
 - Show totals in a simple panel or diagnostics window.
 
-### Step C — Robustness hardening
+### Step B — Robustness hardening
 - Handle adapter disconnect/reconnect gracefully.
 - Handle counter resets/rollovers for usage calculations.
 - Add logging around collector and DB failures.
 
-### Step D — Product UX finish for Milestone 1
-- Tray icon + context menu (open settings, exit).
-- Start-with-Windows toggle and wiring.
+### Step C — Product UX finish for Milestone 1
 - Minimal-mode formatting alignment (`DL: xx unit/s  UL: xx unit/s`).
+- Triple-click terminate behavior.
+- Fullscreen auto-hide behavior.
 
 ## 7) Suggested Ownership Checklist (for handover completion)
 

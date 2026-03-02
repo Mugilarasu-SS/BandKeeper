@@ -31,6 +31,16 @@ public sealed class AdapterCounterCollector : INetworkCollector
         }
     }
 
+    public static IReadOnlyList<AdapterInfo> GetAvailableAdapters(bool includeVpnAndTunnelAdapters)
+    {
+        return NetworkInterface.GetAllNetworkInterfaces()
+            .Where(i => i.OperationalStatus == OperationalStatus.Up)
+            .Where(i => includeVpnAndTunnelAdapters || !IsVpnOrTunnel(i))
+            .Select(i => new AdapterInfo(i.Id, i.Name))
+            .OrderBy(i => i.Name)
+            .ToList();
+    }
+
     private static NetworkInterface? ResolveAdapter(CollectorSettings settings)
     {
         var adapters = NetworkInterface

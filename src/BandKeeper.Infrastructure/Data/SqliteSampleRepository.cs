@@ -10,6 +10,8 @@ public sealed class SqliteSampleRepository : ISampleRepository
     private const string AdapterIdKey = "widget.adapterId";
     private const string IncludeVpnKey = "widget.includeVpnAndTunnelAdapters";
     private const string PollingIntervalMsKey = "widget.pollingIntervalMs";
+    private const string StartWithWindowsKey = "widget.startWithWindows";
+    private const string OpacityPercentKey = "widget.opacityPercent";
 
     private readonly string _databasePath;
 
@@ -74,6 +76,8 @@ VALUES (
         await UpsertSettingAsync(connection, AdapterIdKey, settings.AdapterId, cancellationToken);
         await UpsertSettingAsync(connection, IncludeVpnKey, settings.IncludeVpnAndTunnelAdapters ? "1" : "0", cancellationToken);
         await UpsertSettingAsync(connection, PollingIntervalMsKey, ((int)settings.PollingInterval.TotalMilliseconds).ToString(), cancellationToken);
+        await UpsertSettingAsync(connection, StartWithWindowsKey, settings.StartWithWindows ? "1" : "0", cancellationToken);
+        await UpsertSettingAsync(connection, OpacityPercentKey, settings.OpacityPercent.ToString(System.Globalization.CultureInfo.InvariantCulture), cancellationToken);
     }
 
     public async Task<WidgetSettings> GetWidgetSettingsAsync(CancellationToken cancellationToken)
@@ -83,15 +87,21 @@ VALUES (
         var adapterId = await GetSettingAsync(connection, AdapterIdKey, cancellationToken) ?? "auto";
         var includeVpnValue = await GetSettingAsync(connection, IncludeVpnKey, cancellationToken) ?? "0";
         var pollingMsValue = await GetSettingAsync(connection, PollingIntervalMsKey, cancellationToken) ?? "1000";
+        var startWithWindowsValue = await GetSettingAsync(connection, StartWithWindowsKey, cancellationToken) ?? "0";
+        var opacityPercentValue = await GetSettingAsync(connection, OpacityPercentKey, cancellationToken) ?? "70";
 
         var includeVpn = includeVpnValue == "1";
+        var startWithWindows = startWithWindowsValue == "1";
         var pollingMs = int.TryParse(pollingMsValue, out var parsedMs) ? parsedMs : 1000;
+        var opacityPercent = double.TryParse(opacityPercentValue, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var parsedOpacity) ? parsedOpacity : 70;
 
         return new WidgetSettings
         {
             AdapterId = adapterId,
             IncludeVpnAndTunnelAdapters = includeVpn,
-            PollingInterval = TimeSpan.FromMilliseconds(Math.Max(250, pollingMs))
+            PollingInterval = TimeSpan.FromMilliseconds(Math.Max(250, pollingMs)),
+            StartWithWindows = startWithWindows,
+            OpacityPercent = Math.Clamp(opacityPercent, 20, 100)
         };
     }
 
