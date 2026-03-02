@@ -1,3 +1,4 @@
+using System.Net.NetworkInformation;
 using BandKeeper.Core.Abstractions;
 using BandKeeper.Core.Models;
 
@@ -11,18 +12,60 @@ public sealed class AdapterCounterCollector : INetworkCollector
         CollectorSettings settings,
         [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        // Milestone 1 scaffold:
-        // A real implementation will query adapter counters from Windows APIs and yield real samples.
         while (!cancellationToken.IsCancellationRequested)
         {
-            yield return new NetworkSample(
-                DateTimeOffset.UtcNow,
-                settings.AdapterId,
-                "Scaffold Adapter",
-                0,
-                0);
+            var adapter = ResolveAdapter(settings);
+            if (adapter is not null)
+            {
+                var stats = adapter.GetIPStatistics();
+
+                yield return new NetworkSample(
+                    DateTimeOffset.UtcNow,
+                    adapter.Id,
+                    adapter.Name,
+                    stats.BytesReceived,
+                    stats.BytesSent);
+            }
 
             await Task.Delay(settings.PollingInterval, cancellationToken);
         }
+    }
+
+    private static NetworkInterface? ResolveAdapter(CollectorSettings settings)
+    {
+        var adapters = NetworkInterface
+            .GetAllNetworkInterfaces()
+            .Where(i => i.OperationalStatus == OperationalStatus.Up)
+            .Where(i => settings.IncludeVpnAndTunnelAdapters || !IsVpnOrTunnel(i))
+            .ToList();
+
+        if (adapters.Count == 0)
+        {
+            return null;
+        }
+
+        var selected = adapters.FirstOrDefault(i =>
+            string.Equals(i.Id, settings.AdapterId, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(i.Name, settings.AdapterId, StringComparison.OrdinalIgnoreCase));
+
+        return selected ?? adapters[0];
+    }
+
+    private static bool IsVpnOrTunnel(NetworkInterface networkInterface)
+    {
+        if (networkInterface.NetworkInterfaceType == NetworkInterfaceType.Tunnel)
+        {
+            return true;
+        }
+
+        var name = networkInterface.Name;
+        var description = networkInterface.Description;
+
+        return name.Contains("vpn", StringComparison.OrdinalIgnoreCase)
+               || description.Contains("vpn", StringComparison.OrdinalIgnoreCase)
+               || description.Contains("wireguard", StringComparison.OrdinalIgnoreCase)
+               || description.Contains("openvpn", StringComparison.OrdinalIgnoreCase)
+               || description.Contains("tap", StringComparison.OrdinalIgnoreCase)
+               || description.Contains("tun", StringComparison.OrdinalIgnoreCase);
     }
 }
