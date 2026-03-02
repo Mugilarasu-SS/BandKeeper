@@ -38,14 +38,17 @@ public partial class MainWindow : Window
         {
             await _repository.InitializeAsync(_cancellationTokenSource.Token);
 
-            var settings = new CollectorSettings
+            var widgetSettings = await _repository.GetWidgetSettingsAsync(_cancellationTokenSource.Token);
+            await _repository.SaveWidgetSettingsAsync(widgetSettings, _cancellationTokenSource.Token);
+
+            var collectorSettings = new CollectorSettings
             {
-                AdapterId = "auto",
-                IncludeVpnAndTunnelAdapters = false,
-                PollingInterval = TimeSpan.FromSeconds(1)
+                AdapterId = widgetSettings.AdapterId,
+                IncludeVpnAndTunnelAdapters = widgetSettings.IncludeVpnAndTunnelAdapters,
+                PollingInterval = widgetSettings.PollingInterval
             };
 
-            _monitoringTask = Task.Run(() => StartMonitoringAsync(settings, _cancellationTokenSource.Token));
+            _monitoringTask = Task.Run(() => StartMonitoringAsync(collectorSettings, _cancellationTokenSource.Token));
         }
         catch (Exception)
         {
